@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:IsolatedDesktop}",
+            "name": "Debug IsolatedDesktop",
+            "target": "IsolatedDesktop",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug IsolatedDesktop"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:IsolatedDesktop}",
+            "name": "Release IsolatedDesktop",
+            "target": "IsolatedDesktop",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release IsolatedDesktop"
+        }
+    ]
+}

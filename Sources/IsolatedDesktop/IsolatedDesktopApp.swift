@@ -24,8 +24,9 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let controller, controller.machine != nil || controller.busy else { return .terminateNow }
         let alert = NSAlert()
-        alert.messageText = "Arrête d’abord le bureau isolé"
-        alert.informativeText = "Pour éviter une interruption de l’installation ou des écritures disque, arrête la VM avant de quitter."
+        alert.messageText = "Stop the isolated desktop first"
+        alert.informativeText = "Stop the virtual machine before quitting to avoid interrupting installation or disk writes."
+        alert.addButton(withTitle: "OK")
         alert.runModal()
         return .terminateCancel
     }
@@ -42,34 +43,34 @@ struct DesktopView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Label("Isolated Desktop", systemImage: "desktopcomputer")
                     .font(.title2.bold())
-                Text("Un macOS distinct, sur ton Mac.").foregroundStyle(.secondary)
+                Text("A separate macOS, on your Mac.").foregroundStyle(.secondary)
                 Divider()
-                Toggle("Autoriser le réseau", isOn: $controller.options.networkEnabled)
+                Toggle("Allow network", isOn: $controller.options.networkEnabled)
                 Text(controller.options.networkEnabled
-                     ? "Réseau NAT : ni VPN ni anonymisation. Le réseau local peut rester accessible."
-                     : "Aucune carte réseau exposée à la VM.")
+                     ? "NAT networking: no VPN or anonymity. Your local network may remain accessible."
+                     : "No network adapter is attached to the VM.")
                     .font(.caption).foregroundStyle(.secondary)
-                Toggle("Session temporaire", isOn: $controller.options.temporarySession)
-                Text("La copie de session est supprimée après l’arrêt. La base reste conservée. Ce n’est pas un effacement sécurisé.")
+                Toggle("Temporary session", isOn: $controller.options.temporarySession)
+                Text("The session copy is deleted after shutdown. The reference system is kept. This is not secure erasure.")
                     .font(.caption).foregroundStyle(.secondary)
                 Divider()
-                Text("Fichiers du Mac").font(.headline)
+                Text("Host files").font(.headline)
                 if let directory = controller.options.sharedDirectory {
                     Text(directory.path).font(.caption).textSelection(.enabled)
-                    Text("Lecture seule").foregroundStyle(.secondary)
-                    Button("Retirer le partage") { controller.options.sharedDirectory = nil }
+                    Text("Read-only").foregroundStyle(.secondary)
+                    Button("Remove sharing") { controller.options.sharedDirectory = nil }
                 } else {
-                    Text("Aucun dossier partagé").foregroundStyle(.secondary)
+                    Text("No shared folder").foregroundStyle(.secondary)
                 }
-                Button("Choisir un dossier…") { controller.chooseSharedDirectory() }
-                Text("Presse-papiers, caméra et microphone non partagés.")
+                Button("Choose a folder…") { controller.chooseSharedDirectory() }
+                Text("Clipboard, camera, and microphone are not shared.")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 if !controller.installed {
-                    Button("Installer macOS depuis un IPSW…") { controller.install() }
+                    Button("Install macOS from an IPSW…") { controller.install() }
                         .buttonStyle(.borderedProminent)
                 } else {
-                    Button("Ouvrir le bureau isolé") { controller.start() }
+                    Button("Open isolated desktop") { controller.start() }
                         .buttonStyle(.borderedProminent)
                 }
             }
@@ -82,8 +83,8 @@ struct DesktopView: View {
                     Text(controller.status).font(.callout)
                     Spacer()
                     if controller.machine != nil && !controller.installing {
-                        Button("Arrêter") { controller.requestShutdown() }
-                        Button("Forcer l’arrêt", role: .destructive) { confirmForceStop = true }
+                        Button("Shut down") { controller.requestShutdown() }
+                        Button("Force stop", role: .destructive) { confirmForceStop = true }
                     }
                 }.padding().disabled(controller.busy)
                 Divider()
@@ -91,25 +92,25 @@ struct DesktopView: View {
                     VirtualDesktop(machine: machine)
                 } else {
                     ContentUnavailableView {
-                        Label("Bureau isolé macOS", systemImage: "lock.desktopcomputer")
+                        Label("Isolated macOS desktop", systemImage: "lock.desktopcomputer")
                     } description: {
                         Text(controller.installed
-                            ? "Pour la première utilisation, conserve la session afin de terminer la configuration de macOS."
-                            : "Choisis une image de restauration IPSW compatible avec ton M4. Prévois de l’espace disque pour macOS et ses sessions.")
+                            ? "For first-time setup, use a persistent session to finish configuring macOS."
+                            : "Choose a restore IPSW compatible with your Mac. Allow enough disk space for macOS and session copies.")
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }.frame(minWidth: 550, minHeight: 550)
         }
-        .alert("Erreur", isPresented: Binding(
+        .alert("Error", isPresented: Binding(
             get: { controller.errorMessage != nil },
             set: { if !$0 { controller.errorMessage = nil } }
         )) { Button("OK") { controller.errorMessage = nil } }
         message: { Text(controller.errorMessage ?? "") }
-        .alert("Forcer l’arrêt du bureau ?", isPresented: $confirmForceStop) {
-            Button("Annuler", role: .cancel) {}
-            Button("Forcer l’arrêt", role: .destructive) { controller.forceStop() }
+        .alert("Force stop the desktop?", isPresented: $confirmForceStop) {
+            Button("Cancel", role: .cancel) {}
+            Button("Force stop", role: .destructive) { controller.forceStop() }
         } message: {
-            Text("Les données non enregistrées seront perdues. Une session conservée peut subir une corruption de fichiers.")
+            Text("Unsaved work will be lost. Files in a persistent session may become corrupted.")
         }
     }
 }

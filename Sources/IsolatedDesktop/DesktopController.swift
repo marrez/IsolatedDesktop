@@ -7,7 +7,7 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
     @Published var options = IsolationOptions()
     @Published private(set) var machine: VZVirtualMachine?
     @Published private(set) var busy = false
-    @Published private(set) var status = "Prêt"
+    @Published private(set) var status = "Ready"
     @Published private(set) var installed = false
     @Published private(set) var installing = false
     @Published var errorMessage: String?
@@ -24,6 +24,8 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
     func chooseSharedDirectory() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
+        panel.title = "Choose a read-only shared folder"
+        panel.prompt = "Choose"
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         if panel.runModal() == .OK { options.sharedDirectory = panel.url }
@@ -33,11 +35,13 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
         guard !busy, machine == nil, !installed, VZVirtualMachine.isSupported else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "ipsw") ?? .data]
+        panel.title = "Choose a macOS restore IPSW"
+        panel.prompt = "Select IPSW"
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let imageURL = panel.url else { return }
         busy = true
         installing = true
-        status = "Lecture de l’image IPSW…"
+        status = "Reading IPSW image…"
         VZMacOSRestoreImage.load(from: imageURL) { result in
             Task { @MainActor in
                 do {
@@ -75,7 +79,7 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
         machine = vm
         let installer = VZMacOSInstaller(virtualMachine: vm, restoringFromImageAt: imageURL)
         self.installer = installer
-        status = "Installation de macOS — ne quitte pas l’application…"
+        status = "Installing macOS — do not quit the application…"
         installer.install { result in
             Task { @MainActor in
                 self.installer = nil
@@ -87,7 +91,7 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
                     self.installed = true
                     self.busy = false
                     self.installing = false
-                    self.status = "macOS installé. Lance une session conservée pour terminer l’assistant de configuration."
+                    self.status = "macOS installed. Open a persistent session to complete Setup Assistant."
                     self.options.temporarySession = false
                 } catch { self.fail(error) }
             }
@@ -97,7 +101,7 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
     func start() {
         guard installed, !busy, machine == nil else { return }
         busy = true
-        status = "Préparation du bureau…"
+        status = "Preparing desktop…"
         let temporary = options.temporarySession
         let store = self.store
         Task {
@@ -115,7 +119,7 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
                         switch result {
                         case .success:
                             self.busy = false
-                            self.status = temporary ? "Bureau temporaire actif" : "Bureau conservé actif"
+                            self.status = temporary ? "Temporary desktop running" : "Persistent desktop running"
                         case .failure(let error): self.fail(error)
                         }
                     }
@@ -128,7 +132,7 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
         guard let machine, !busy, machine.canRequestStop else { return }
         do {
             try machine.requestStop()
-            status = "Arrêt demandé — termine la session dans le macOS invité."
+            status = "Shutdown requested — finish shutting down in guest macOS."
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -168,9 +172,9 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
         if let directory = temporaryDirectory {
             temporaryDirectory = nil
             do { try store.removeSession(directory) }
-            catch { errorMessage = "Session arrêtée, mais suppression impossible : \(error.localizedDescription)" }
+            catch { errorMessage = "Session stopped, but cleanup failed: \(error.localizedDescription)" }
         }
-        status = "Bureau arrêté"
+        status = "Desktop stopped"
     }
 
     private func fail(_ error: Error) {
@@ -179,6 +183,6 @@ final class DesktopController: NSObject, ObservableObject, VZVirtualMachineDeleg
         // Preserve failed installation files for diagnosis. Only session copies are removed.
         finishSession()
         errorMessage = error.localizedDescription
-        status = "Échec — consulte le message d’erreur"
+        status = "Failed — see the error message"
     }
 }

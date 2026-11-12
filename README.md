@@ -42,14 +42,14 @@ Do not launch it using `swift run`: the executable needs the entitlement added b
 
 ## First-time setup
 
-> The application interface is currently in French. The instructions below include the labels you will see.
+The application’s own labels and messages are in English. Native macOS dialogs and system-provided error details may follow your system language. The guest macOS language is selected separately during guest setup.
 
 1. Obtain an **official Apple macOS restore IPSW** compatible with your Mac. An installer `.app` or an ISO file will not work. The application does not download the image automatically.
-2. Click **“Installer macOS depuis un IPSW…”** (Install macOS from an IPSW) and select your image.
+2. Click **“Install macOS from an IPSW…”** and select your image.
 3. Wait for installation to finish. Do not quit the application during installation. The guest disk is allocated progressively; installation and session copies still require sufficient free storage.
-4. Open a **persistent session** with **“Session temporaire”** (Temporary session) turned **off**. Complete macOS Setup Assistant and create a separate local account. Enable networking only if needed; some setup steps and updates may require it.
+4. Open a **persistent session** with **“Temporary session”** turned **off**. Complete macOS Setup Assistant and create a separate local account. Enable networking only if needed; some setup steps and updates may require it.
 5. Shut down the guest properly. The reference system now contains your configured desktop.
-6. For a disposable workspace, turn **“Session temporaire”** on and click **“Ouvrir le bureau isolé”** (Open isolated desktop).
+6. For a disposable workspace, turn **“Temporary session”** on and click **“Open isolated desktop”**.
 
 Use the green window button to enter full screen. This places the application in its own macOS Space, but the **virtual machine**, not the Space, provides isolation.
 
@@ -68,7 +68,7 @@ Temporary sessions are **not secure erasure**. Backups and filesystem snapshots 
 
 ### Network access
 
-**“Autoriser le réseau”** (Allow network) is off by default. In this state, no virtual network adapter is attached.
+**“Allow network”** is off by default. In this state, no virtual network adapter is attached.
 
 When enabled, the application uses standard NAT networking:
 
@@ -80,7 +80,7 @@ Stop the VM before changing its network settings.
 
 ### Sharing files with the guest
 
-Click **“Choisir un dossier…”** (Choose a folder) to expose a host folder as **read-only**. Click **“Retirer le partage”** (Remove sharing) to remove it before the next start.
+Click **“Choose a folder…”** to expose a host folder as **read-only**. Click **“Remove sharing”** to remove it before the next start.
 
 The selected folder is shared through VirtioFS, with automatic mounting in a compatible guest macOS version. Treat all contents of that folder as readable by guest applications.
 
@@ -88,8 +88,8 @@ Read-only sharing prevents modification through that share. It does **not** prev
 
 ### Shutting down
 
-- Prefer shutting down from inside guest macOS, or click **“Arrêter”** (Shut down) to request a shutdown.
-- Use **“Forcer l’arrêt”** (Force stop) only when necessary. Unsaved work may be lost, and a persistent disk may suffer filesystem corruption.
+- Prefer shutting down from inside guest macOS, or click **“Shut down”** to request a shutdown.
+- Use **“Force stop”** only when necessary. Unsaved work may be lost, and a persistent disk may suffer filesystem corruption.
 - Stop the VM before quitting the application.
 
 ## How isolation works
@@ -133,6 +133,39 @@ Application data is stored locally in:
 Temporary session copies are deleted after a normal stop or successful forced stop. There is no automatic startup cleanup for sessions left behind by a crash.
 
 Do not move or delete VM files while the application is installing or running a guest. Deleting the reference system removes the installed guest and its saved data, so back up anything important first.
+
+## Cleaning
+
+**Always stop the guest and quit Isolated Desktop before cleaning VM data.** Ensure no other instance is running. Back up any files you want to keep first. There is no in-app cleanup manager yet.
+
+### Remove leftover temporary sessions
+
+Temporary session copies are normally deleted when the VM stops. After a crash, some copies may remain:
+
+1. In Finder, choose **Go → Go to Folder…** (`Shift–Command–G`).
+2. Enter `~/Library/Application Support/IsolatedDesktop/Sessions/`.
+3. Move only the abandoned session folders you no longer need to the Trash. Their names are UUIDs, such as `12345678-1234-1234-1234-123456789ABC`.
+
+This leaves `Base/` intact. However, deleting a session permanently discards any work stored only in that copy once the Trash is emptied. Recover any needed data before deleting it.
+
+### Remove failed installation files
+
+Open `~/Library/Application Support/IsolatedDesktop/` in Finder. Folders named `Installation-…` may remain after a failed installation. Once the application is closed and you no longer need them for troubleshooting, move those folders to the Trash. Do not remove `Base/` as part of routine cleanup.
+
+### Reset the installed guest
+
+**This deletes the reference system, installed guest apps, and all persistent-session data.** With the application closed, back up anything important, then move `Base/` to the Trash. Move any unwanted copies from `Sessions/` as well; those copies may still contain previous guest data.
+
+Next time you open the application, install macOS again from an IPSW.
+
+### Remove build files or uninstall
+
+- If you built from source, you can delete `.build/` inside the project to reclaim build-cache space. Stop any build or test process first. It will be recreated on the next build.
+- You can delete `dist/` to remove the generated application. Re-run the build script to recreate it. Neither folder contains the installed guest by default.
+- To remove all local VM data, first stop the guest and quit the application, then move `~/Library/Application Support/IsolatedDesktop/` to the Trash. **This removes the reference system, session copies, and installation files.**
+- Delete any downloaded IPSW separately if you no longer need it. Keep it if you want to reinstall without downloading it again.
+
+Moving files to the Trash does not immediately reclaim their storage; empty it only after checking that you no longer need them. Cleanup is **not secure erasure**: Time Machine backups, APFS snapshots, and other copies may retain data.
 
 ## Troubleshooting
 

@@ -53,6 +53,6 @@ enum MachineConfiguration {
 
     enum ConfigurationError: LocalizedError {
         case unsupportedMachine
-        var errorDescription: String? { "Ce modèle de machine virtuelle n’est pas compatible avec ce Mac." }
+        var errorDescription: String? { "This virtual machine model is not compatible with this Mac." }
     }
 }
